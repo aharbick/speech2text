@@ -8,7 +8,7 @@ module Speech
     def initialize(file, options={})
       self.verbose = false
       self.file = file
-      self.captured_json = {}
+      self.captured_json = []
       self.best_match_text = ""
       self.score = 0.0
       self.segments = 0
@@ -18,7 +18,7 @@ module Speech
 
     def to_text(max=2,lang="en-US")
       to_json(max,lang)
-      self.best_match_text if self.verbose
+      self.best_match_text
     end
 
     def to_json(max=2,lang="en-US")
@@ -33,9 +33,9 @@ module Speech
         chunk.build.to_flac
         convert_chunk(easy, chunk)
       end
-      self.best_match_text = self.best_match_text.strip
+      self.best_match_text.strip!
       self.score /= self.segments
-      self.captured_json
+      JSON.parse("[#{self.captured_json.join(",")}]")
     end
 
   protected
@@ -59,22 +59,19 @@ module Speech
           sleep 0.5 # wait longer on error?, google??
         else
           # {"status":0,"id":"ce178ea89f8b17d8e8298c9c7814700a-1","hypotheses":[{"utterance"=>"I like pickles", "confidence"=>0.59408695}, {"utterance"=>"I like turtles"}, {"utterance"=>"I like tickles"}, {"utterance"=>"I like to Kohl's"}, {"utterance"=>"I Like tickles"}, {"utterance"=>"I lyk tickles"}, {"utterance"=>"I liked to Kohl's"}]}
+          self.captured_json << easy.body_str
           data = JSON.parse(easy.body_str)
-          self.captured_json['status'] = data['status']
-          self.captured_json['id'] = data['id']
-          self.captured_json['hypotheses'] = data['hypotheses'].map {|ut| [ut['utterance'], ut['confidence']] } 
           if data.key?('hypotheses') && data['hypotheses'].first
             self.best_match_text += " " + data['hypotheses'].first['utterance']
             self.score += data['hypotheses'].first['confidence']
             self.segments += 1
-            puts data['hypotheses'].first['utterance']
+            puts data['hypotheses'].first['utterance'] if self.verbose
           end
           retrying = false
         end
         sleep 0.1 # not too fast there tiger
       end
       puts "#{segments} processed: #{self.captured_json.inspect}" if self.verbose
-      self.captured_json
     ensure
       chunk.clean
     end
