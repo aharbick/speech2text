@@ -59,13 +59,15 @@ module Speech
           sleep 0.5 # wait longer on error?, google??
         else
           # {"status":0,"id":"ce178ea89f8b17d8e8298c9c7814700a-1","hypotheses":[{"utterance"=>"I like pickles", "confidence"=>0.59408695}, {"utterance"=>"I like turtles"}, {"utterance"=>"I like tickles"}, {"utterance"=>"I like to Kohl's"}, {"utterance"=>"I Like tickles"}, {"utterance"=>"I lyk tickles"}, {"utterance"=>"I liked to Kohl's"}]}
-          self.captured_json << easy.body_str
-          data = JSON.parse(easy.body_str)
-          if data.key?('hypotheses') && data['hypotheses'].first
-            self.best_match_text += " " + data['hypotheses'].first['utterance']
-            self.score += data['hypotheses'].first['confidence']
-            self.segments += 1
-            puts data['hypotheses'].first['utterance'] if self.verbose
+          if !easy.body_str.nil? && !easy.body_str.empty?
+            self.captured_json << easy.body_str
+            data = JSON.parse(easy.body_str)
+            if data.key?('hypotheses') && data['hypotheses'].first
+              self.best_match_text += " " + data['hypotheses'].first['utterance']
+              self.score += data['hypotheses'].first['confidence']
+              self.segments += 1
+              puts data['hypotheses'].first['utterance'] if self.verbose
+            end
           end
           retrying = false
         end
